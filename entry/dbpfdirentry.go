@@ -21,18 +21,16 @@ func (e *DBPFEntry) AddEntry(tgi *DBPFEntryTGI, size uint32) {
   copy(entryData[12:], util.WriteUint32(size))
 
   data := e.GetData()
-  pos := 0
-  if data == nil {
-    data = make([]byte, 16)
-  } else {
-    pos = len(data)
-    data = make([]byte, pos + 16)
-  }
+  len := len(data)
+  temp := make([]byte, len + 16)
+  copy(temp[:len], data)
+  copy(temp[len:], entryData)
 
-  copy(data[pos:], entryData)
-  e.SetData(data)
+  e.SetData(temp)
 }
 
+// CreateDirEntry creates a DBPFEntry with the DBPFEntryTGI reserved for the DIR
+// entry.
 func CreateDirEntry() *DBPFEntry {
   return &DBPFEntry{TGI: DIR_ENTRY_TGI}
 }

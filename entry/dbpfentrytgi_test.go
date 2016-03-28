@@ -52,3 +52,25 @@ func TestDBPFEntryTGIEquals(t *testing.T) {
     t.Error()
   }
 }
+
+func TestDBPFEntryBytes(t *testing.T) {
+  bytes := make([]byte, 12)
+  tgi := &DBPFEntryTGI{TypeId: 0x32F9A014, GroupId: 0x7B5CA68E, InstanceId: 0x2468ACE0}
+  expected := []byte{ 0x14, 0xA0, 0xF9, 0x32, 0x8E, 0xA6, 0x5C, 0x7B, 0xE0, 0xAC, 0x68, 0x24}
+
+  tgi.Bytes(bytes)
+
+  CheckIfSlicesAreEqual(t, bytes, expected)
+}
+
+func CheckIfSlicesAreEqual(t *testing.T, actual, expected []byte) {
+  if len(actual) != len(expected) {
+    t.Errorf("Actual slice size %d didn't match expected size %d", len(actual), len(expected))
+  }
+
+  for i, v := range actual {
+    if v != expected[i] {
+      t.Errorf("Byte %d: expected %2x, but actually was %2x", i, expected[i], v)
+    }
+  }
+}
