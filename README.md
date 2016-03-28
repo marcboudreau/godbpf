@@ -14,6 +14,20 @@ More  to come...
 
 More to come...
 
+## Testing
+
+The entire library can be tested from its root directory using the go test command
+`go test`
+
+### Code Coverage
+
+To measure code coverage from testing, the go test command must be run from each
+package
+`go test -coverprofile=coverage.out`
+
+To view the coverage reports in HTML form, use the go tool cover command
+`go tool cover -html=coverage.out`
+
 ## Contributing
 
 If you are interested in contributing to this project, please the [CONTRIBUTING.md](CONTRIBUTING.md) document

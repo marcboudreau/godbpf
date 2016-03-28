@@ -7,8 +7,7 @@ import (
     "errors"
     "bytes"
     "container/list"
-    "fmt"
-
+    
     "github.com/marcboudreau/godbpf/entry"
     "github.com/marcboudreau/godbpf/qfs"
     "github.com/marcboudreau/godbpf/util"
@@ -75,9 +74,6 @@ func Parse(r io.Reader) (*DBPF, error) {
 // parseHeader parses the header section of the DBPF file and populates the values
 // in the provided DBPF instance.
 func parseHeader(r io.Reader, dbpf *DBPF) (count, offset uint32, e error) {
-  fmt.Println("ENTER parseHeader")
-  defer fmt.Println("EXIT parseHeader")
-
   magic := make([]byte, 4)
   if _, e := r.Read(magic); e != nil {
     return 0, 0, e
@@ -90,9 +86,6 @@ func parseHeader(r io.Reader, dbpf *DBPF) (count, offset uint32, e error) {
   binary.Read(r, binary.LittleEndian, &dbpf.MajorVersion)
   binary.Read(r, binary.LittleEndian, &dbpf.MinorVersion)
 
-  fmt.Printf("  dbpf.MajorVersion = %d\n", dbpf.MajorVersion)
-  fmt.Printf("  dbpf.MinorVersion = %d\n", dbpf.MinorVersion)
-
   r.Read(make([]byte, 12))
 
   var timestamp uint32
@@ -101,23 +94,14 @@ func parseHeader(r io.Reader, dbpf *DBPF) (count, offset uint32, e error) {
   binary.Read(r, binary.LittleEndian, &timestamp)
   dbpf.ModifiedDate = time.Unix(int64(timestamp), 0)
 
-  fmt.Printf("  dbpf.CreatedDate = 0x%08X\n", dbpf.CreatedDate.Unix())
-  fmt.Printf("  dbpf.ModifiedDate = 0x%08X\n", dbpf.ModifiedDate.Unix())
-
   binary.Read(r, binary.LittleEndian, &dbpf.IndexMajorVersion)
   binary.Read(r, binary.LittleEndian, &count)
   binary.Read(r, binary.LittleEndian, &offset)
-
-  fmt.Printf("  index.MajorVersion = %d\n", dbpf.IndexMajorVersion)
-  fmt.Printf("  count = %d\n", count)
-  fmt.Printf("  offset = %d\n", offset)
 
   // Gobble up the index size and 3 other  unused uint32 values
   r.Read(make([]byte, 16))
 
   binary.Read(r, binary.LittleEndian, &dbpf.IndexMinorVersion)
-
-  fmt.Printf("  index.MinorVersion = %d\n", dbpf.IndexMinorVersion)
 
   // Gobble up 10 unused uint32 values
   r.Read(make([]byte, 40))
@@ -237,14 +221,9 @@ func (dbpf *DBPF) GetDirEntry() *entry.DBPFEntry {
 
 // Find searches the index and returns the related DBPFEntry instance.
 func (dbpf *DBPF) Find(tgi *entry.DBPFEntryTGI) *entry.DBPFEntry {
-  fmt.Printf("ENTER Find(tgi: %s)\n", tgi.String())
-  defer fmt.Println("EXIT Find")
-
   for elem := dbpf.entries.Front(); elem != nil; elem = elem.Next() {
     if entry, ok := elem.Value.(*entry.DBPFEntry); ok {
-      fmt.Printf("  entry: %s\n", entry.String())
       if entry.TGI.Equals(tgi) {
-        fmt.Println("  found the match")
         return entry
       }
     }

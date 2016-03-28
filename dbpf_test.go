@@ -4,7 +4,6 @@ import (
   "testing"
   "time"
   "bytes"
-  "fmt"
 
   "github.com/marcboudreau/godbpf/entry"
 )
@@ -253,7 +252,7 @@ func TestSaveEmptyDBPF(t *testing.T) {
 
   for i := 0; i < 40; i++ {
     if c, _ := buffer.ReadByte(); c != expected[i] {
-      t.Error(fmt.Sprintf("Assertion failed. Byte %d expecting %2x but was %2x\n", i, expected[i], c))
+      t.Errorf("Assertion failed. Byte %d expecting %2x but was %2x\n", i, expected[i], c)
     }
   }
 }
@@ -324,7 +323,7 @@ func TestSaveSingleEntryDBPF(t *testing.T) {
 
   for i := 0; i < len(expected); i++ {
     if c, _ := buffer.ReadByte(); c != expected[i] {
-      t.Error(fmt.Sprintf("Assertion failed. Byte %d expecting %2x but was %2x\n", i, expected[i], c))
+      t.Errorf("Assertion failed. Byte %d expecting %2x but was %2x\n", i, expected[i], c)
     }
   }
 }

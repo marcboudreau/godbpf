@@ -3,7 +3,6 @@ package qfs
 import (
   "io"
   "encoding/binary"
-  "fmt"
 )
 
 // Encode takes the bytes contained in the provided byte slice, encodes them, and
@@ -23,10 +22,8 @@ func Encode(w io.Writer, data []byte) error {
     return e
   }
 
-  fmt.Printf("Entering Main processing loop with data: %v\n", data)
   for i := 0; i < len(data); i++ {
     v := data[i]
-    fmt.Printf("Main processing loop (i: %d, v: %2x); offsetToLastOccurence[%2x] = %d\n", i, v, v, offsetToLastOccurence[v])
     if -1 != offsetToLastOccurence[v] {
       repeatCount := firstByteRepeatCount(data[i:])
       if compressed, e := writeCompressible(w, data[nextWritePos:i], repeatCount, uint32(i - offsetToLastOccurence[v])); e != nil {
@@ -34,13 +31,10 @@ func Encode(w io.Writer, data []byte) error {
       } else if compressed {
         nextWritePos = i + int(repeatCount)
         i += int(repeatCount) - 1
-        fmt.Printf("  Main processing loop: setting i to %d\n", i)
       } else {
-        fmt.Printf("Updating 1 offsetToLastOccurence[%2x] from %d to %d\n", v, offsetToLastOccurence[v], i)
         offsetToLastOccurence[v] = i
       }
     } else {
-      fmt.Printf("Updating 2 offsetToLastOccurence[%2x] from %d to %d\n", v, offsetToLastOccurence[v], i)
       offsetToLastOccurence[v] = i
     }
   }
@@ -66,8 +60,6 @@ func firstByteRepeatCount(s []byte) uint32 {
 // it can, it encodes the data and writes it to the Writer; otherwise it does
 // nothing.  writeCompressible returns the number of bytes written.
 func writeCompressible(w io.Writer, data []byte, copyCount, copyOffset uint32) (bool, error) {
-  fmt.Printf("writeCompressible: data=%v, copyCount=%d, copyOffset=%d\n", data, copyCount, copyOffset)
-
   var control []byte = nil
   compressed := false
 
@@ -105,8 +97,6 @@ func writeCompressible(w io.Writer, data []byte, copyCount, copyOffset uint32) (
 // writeFinalBlocks encodes and writes all remaining bytes including the final
 // terminating block.
 func writeFinalBlocks(w io.Writer, data []byte) error {
-  fmt.Printf("writeFinalBlocks: data = %v\n", data)
-
   if consumedBytes, e := writeNonRepeatingBlocks(data, w); e != nil {
     return e
   } else {
@@ -126,8 +116,6 @@ func writeNonRepeatingBlocks(data []byte, w io.Writer) (consumedBytes int, e err
   // Blocks of non-repeating bytes are limited to 4 to 112 bytes in length (in
   // increments of 4).  Write as many full blocks of 112 as possible first, then
   // write the remaining bytes.
-  fmt.Printf("writeNonRepeatingBlocks: data=%v\n", data)
-
   for len(data) >= 112 {
     if e := writeCompressedBlock(createOneControlByteBlock(112, 0, 0), data[0:112], w); e != nil {
       return consumedBytes, e
@@ -139,7 +127,7 @@ func writeNonRepeatingBlocks(data []byte, w io.Writer) (consumedBytes int, e err
 
   blockSize := int(len(data) / 4) * 4
   if blockSize > 0 {
-    if e := writeCompressedBlock(createOneControlByteBlock(uint32(blockSize), 0, 0), data[consumedBytes:consumedBytes + blockSize], w); e != nil {
+    if e := writeCompressedBlock(createOneControlByteBlock(uint32(blockSize), 0, 0), data[0:blockSize], w); e != nil {
       return consumedBytes, e
     }
 
@@ -154,8 +142,6 @@ func writeNonRepeatingBlocks(data []byte, w io.Writer) (consumedBytes int, e err
 //  byte0: 111ppppp
 // This function ignores the copyCount and copyOffset.
 func createOneControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
-  fmt.Printf("Creating 1-control byte: %d, %d, %d\n", dataLen, copyCount, copyOffset)
-
   control := make([]byte, 1)
 
   control[0] = byte(0xE0 | dataLen / 4 - 1)
@@ -168,8 +154,6 @@ func createOneControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
 //  byte0: 0oocccpp
 //  byte1: oooooooo
 func createTwoControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
-  fmt.Printf("Creating 2-control byte: %d, %d, %d\n", dataLen, copyCount, copyOffset)
-
   copyOffset -= 1
   copyCount -= 3
 
@@ -187,8 +171,6 @@ func createTwoControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
 //  byte1: ppoooooo
 //  byte2: oooooooo
 func createThreeControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
-  fmt.Printf("Creating 3-control byte: %d, %d, %d\n", dataLen, copyCount, copyOffset)
-
   copyOffset -= 1
   copyCount -= 4
 
@@ -208,8 +190,6 @@ func createThreeControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
 //  byte2: oooooooo
 //  byte3: cccccccc
 func createFourControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
-  fmt.Printf("Creating 4-control byte: %d, %d, %d\n", dataLen, copyCount, copyOffset)
-
   copyOffset -= 1
   copyCount -= 5
 
@@ -240,8 +220,6 @@ func createFinalControlByteBlock(dataLen, copyCount, copyOffset uint32) []byte {
 // bytes passed in as the control and data slices to the io.Writer passed in.
 // The number of bytes written, including the control bytes is returned.
 func writeCompressedBlock(control, data []byte, w io.Writer) error {
-  fmt.Printf("writeCompressedBlock: data=%v\n", data)
-
   buffer := make([]byte, len(control) + len(data))
 
   copy(buffer, control)
@@ -271,7 +249,6 @@ func Decode(r io.Reader) ([]byte, error) {
     return nil, e
   }
   size := uint32(buffer[0] << 16 | buffer[1] << 8 | buffer[2])
-  fmt.Printf("Decode determined uncompressed size: %d\n", size)
 
   // Create the output byte slice
   output := make([]byte, size)
@@ -293,8 +270,6 @@ func Decode(r io.Reader) ([]byte, error) {
 // decodeSequence decodes a sequence of bytes and writes the decoded bytes in
 // the provided byte slice.
 func decodeSequence(control byte, r io.Reader, output []byte, outputPos *int) error {
-  fmt.Printf("decodeSequence: control=0x%02X, outputPos=%d\n", control, *outputPos)
-
   buffer := make([]byte, 4)
   buffer[0] = control
 
@@ -303,7 +278,6 @@ func decodeSequence(control byte, r io.Reader, output []byte, outputPos *int) er
   switch {
   case control & 0x80 == 0x0:
     // 2-byte control code
-    fmt.Printf("  decodeSequence: control & 0x80 = 0x%2X (0x00 ?)\n", control & 0xFC)
     if _, e := r.Read(buffer[1:2]); e != nil {
       return e
     }
@@ -311,7 +285,6 @@ func decodeSequence(control byte, r io.Reader, output []byte, outputPos *int) er
     break
   case control & 0xC0 == 0x80:
     // 3-byte control code
-    fmt.Printf("  decodeSequence: control & 0xC0 = 0x%2X (0x80 ?)\n", control & 0xFC)
     if _, e := r.Read(buffer[1:3]); e != nil {
       return e
     }
@@ -319,7 +292,6 @@ func decodeSequence(control byte, r io.Reader, output []byte, outputPos *int) er
     break
   case control & 0xE0 == 0xC0:
     // 4-byte control code
-    fmt.Printf("  decodeSequence: control & 0xC0 = 0x%2X (0xC0)\n", control & 0xC0)
     if _, e := r.Read(buffer[1:4]); e != nil {
       return e
     }
@@ -327,12 +299,10 @@ func decodeSequence(control byte, r io.Reader, output []byte, outputPos *int) er
     break
   case control & 0xE4 == 0xE0:
     // 1-byte control code
-    fmt.Printf("  decodeSequence: control & 0xE4 = 0x%2X (0xE0)\n", control & 0xFC)
     f = decodeOneByteSequence
     break
   case control & 0xFC == 0xFC:
     // Special 1-byte control code (terminator)
-    fmt.Printf("  decodeSequence: control & 0xFC = 0x%2X (0xFC)\n", control & 0xFC)
     f = decodeFinalSequence
     break
   }
